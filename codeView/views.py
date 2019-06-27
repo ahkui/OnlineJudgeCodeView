@@ -72,7 +72,7 @@ def getFrustrationData(request):
             info = stuInfo[nid]
         except:
             needDrop.append(nid)
-            print("NeedDrop:",nid)
+            #print("NeedDrop:",nid)
         data[nid]['name'] = info['name']
         data[nid]['major'] = info['major']
         data[nid]['class'] = info['class']
@@ -242,5 +242,5 @@ def getStudentInformation():
             line = line.split(',')
             if line[0] in student:
                 student[line[0]]['quit'] = '第 %02d 週'%(int(line[1]))
-    print(student)
+    #print(student)
     return student
