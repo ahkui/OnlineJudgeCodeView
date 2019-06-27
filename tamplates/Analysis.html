@@ -1,0 +1,317 @@
+{% extends "base.html" %}
+{% block title %}CodeView - Analysis{% endblock %}
+    
+{% block head %}    
+    <!--D3.js-->
+    <script src="https://d3js.org/d3.v5.min.js"></script>
+    
+    <!--C3.js-->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/c3/0.7.0/c3.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/c3/0.7.0/c3.min.js"></script>
+    
+    <!--treeview-->
+    <link href="https://cdn.jsdelivr.net/npm/patternfly-bootstrap-treeview@2.1.0/dist/bootstrap-treeview.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/patternfly-bootstrap-treeview@2.1.8/dist/bootstrap-treeview.min.js"></script>
+    
+    <!--jquaryTable
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.19/css/jquery.dataTables.css">
+    <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.10.19/js/jquery.dataTables.js"></script>
+    -->
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/v/bs4/jszip-2.5.0/dt-1.10.18/b-1.5.6/b-html5-1.5.6/r-2.2.2/datatables.min.css"/>
+    <script type="text/javascript" src="https://cdn.datatables.net/v/bs4/jszip-2.5.0/dt-1.10.18/b-1.5.6/b-html5-1.5.6/r-2.2.2/datatables.min.js"></script>
+    
+    <style type="text/css">
+    
+    </style>
+{% endblock %}  
+{% block script %}
+<script>
+function getProblemList(){
+    $.ajax({
+        url: '/getProblemList/',
+        type: 'GET',
+        dataType: 'json',
+        timeout: 5000,
+        success: function(result) {
+                    let root=[];
+                    for(let key in result){
+                        let contest={'selectable': false,'nodes':[]};
+                        contest['text']=result[key]['title'];
+                        for(let problemID in result[key]['problem']){
+                            contest['nodes'].push({'text':result[key]['problem'][problemID],
+                                                    'icon':"far fa-edit",
+                                                    'selectedIcon': "far fa-edit",
+                                                    'tags':[key,problemID]});
+                        }
+                        root.push(contest);
+                    }
+                    $('#tree').treeview({data: root,
+                        collapseIcon: "fas fa-folder-open",
+                        expandIcon: "fas fa-folder",
+                        levels:1});
+                    $('#tree').on('nodeSelected', function(event, node) {
+                           let contestID = parseInt(node.tags[0]);
+                           let problemID = parseInt(node.tags[1]);
+                           getStudentData(contestID,problemID);
+                    });    
+                }
+    });
+}
+function getStudentData(contestID,problemID){
+    $.ajax({
+        url: '/getAllStudent/',
+        type: 'POST',
+        data: {'contest':contestID,'pid':problemID},
+        dataType: 'json',
+        timeout: 5000,
+        success: function(result) {
+                    console.log(result)
+                }
+    });
+}
+function initDataTable(){
+$('#scoreboardtable').DataTable({
+			"language": {
+				"paginate": {
+					"previous": "上一頁",
+					"next": "下一頁",
+					"first": "第一頁"
+				},
+				"info": "顯示第 _START_ 到 _END_ 筆資料",
+				"infoEmpty": "顯示第 0 到 0 筆資料",
+				"zeroRecords": "找不到這筆資料呀!",
+				"emptyTable": "還沒有資料唷",
+				"lengthMenu": '每頁顯示 <select>'+
+							  '<option value="10">10</option>'+
+							  '<option value="20">20</option>'+
+							  '<option value="30">30</option>'+
+							  '<option value="40">40</option>'+
+							  '<option value="50">50</option>'+
+							  '<option value="-1">所有</option>'+
+							  '</select> 筆資料',
+				"search": "搜尋:"
+			},
+			destroy:true
+			//data:data,
+			//"aoColumnDefs":[
+			//	{"bSortable":false,"aTargets": [ 5,6,7 ]}
+			//]
+		});
+}
+function getFrustrationData(){
+    $.ajax({
+        url: '/getFrustrationData/',
+        type: 'GET',
+        dataType: 'json',
+        timeout: 5000,
+        success: function(result) {
+                    var data = []
+                    var c3Data=[['inClass_x'],['inClass'],
+                                ['quit5_x'],['quit5'],
+                                ['quit6_x'],['quit6'],
+                                ['quit7_x'],['quit7'],
+                                ['quit8_x'],['quit8'],
+                                ['quit9_x'],['quit9'],
+                                ['quit10_x'],['quit10'],
+                                ['quit11_x'],['quit11'],
+                                ['quit12_x'],['quit12'],
+                                ['quit13_x'],['quit13']]
+                    for(const [key, value] of Object.entries(result)){
+                        let oneData = []
+                        oneData.push(key)
+                        oneData.push(value['name'])
+                        oneData.push(value['major'])
+                        oneData.push(value['class'])
+                        oneData.push(value['quit'])
+                        oneData.push(Number(value['avg_score']).toFixed(2))
+                        oneData.push(Number(value['avg']).toFixed(2))
+                        oneData.push(Number(value['23_total']).toFixed(2))
+                        oneData.push(Number(value['30_total']).toFixed(2))
+                        oneData.push(Number(value['39_total']).toFixed(2))
+                        oneData.push(Number(value['48_total']).toFixed(2))
+                        oneData.push(Number(value['57_total']).toFixed(2))
+                        oneData.push(Number(value['64_total']).toFixed(2))
+                        oneData.push(Number(value['74_total']).toFixed(2))
+                        data.push(oneData)
+                        if(value['quit']=="X"){
+                            c3Data[0].push(Number(value['avg_score']).toFixed(2))
+                            c3Data[1].push(Number(value['avg']).toFixed(2))
+                        }
+                        else if(value['quit']=="第 05 週"){
+                            c3Data[2].push(Number(value['avg_score']).toFixed(2))
+                            c3Data[3].push(Number(value['avg']).toFixed(2))
+                        }
+                        else if(value['quit']=="第 06 週"){
+                            c3Data[4].push(Number(value['avg_score']).toFixed(2))
+                            c3Data[5].push(Number(value['avg']).toFixed(2))
+                        }
+                        else if(value['quit']=="第 07 週"){
+                            c3Data[6].push(Number(value['avg_score']).toFixed(2))
+                            c3Data[7].push(Number(value['avg']).toFixed(2))
+                        }
+                        else if(value['quit']=="第 08 週"){
+                            c3Data[8].push(Number(value['avg_score']).toFixed(2))
+                            c3Data[9].push(Number(value['avg']).toFixed(2))
+                        }
+                        else if(value['quit']=="第 09 週"){
+                            c3Data[10].push(Number(value['avg_score']).toFixed(2))
+                            c3Data[11].push(Number(value['avg']).toFixed(2))
+                        }
+                        else if(value['quit']=="第 10 週"){
+                            c3Data[12].push(Number(value['avg_score']).toFixed(2))
+                            c3Data[13].push(Number(value['avg']).toFixed(2))
+                        }
+                        else if(value['quit']=="第 11 週"){
+                            c3Data[14].push(Number(value['avg_score']).toFixed(2))
+                            c3Data[15].push(Number(value['avg']).toFixed(2))
+                        }
+                        else if(value['quit']=="第 12 週"){
+                            c3Data[16].push(Number(value['avg_score']).toFixed(2))
+                            c3Data[17].push(Number(value['avg']).toFixed(2))
+                        }
+                        else if(value['quit']=="第 13 週"){
+                            c3Data[18].push(Number(value['avg_score']).toFixed(2))
+                            c3Data[19].push(Number(value['avg']).toFixed(2))
+                        }
+                    }
+                    $('#scoreboardtable').DataTable( {
+                        "language": {
+                            "paginate": {
+                                "previous": "上一頁",
+                                "next": "下一頁",
+                                "first": "第一頁"
+                            },
+                            "info": "顯示第 _START_ 到 _END_ 筆資料",
+                            "infoEmpty": "顯示第 0 到 0 筆資料",
+                            "zeroRecords": "找不到這筆資料呀!",
+                            "emptyTable": "還沒有資料唷",
+                            "lengthMenu": '每頁顯示 <select>'+
+                                          '<option value="10">10</option>'+
+                                          '<option value="20">20</option>'+
+                                          '<option value="30">30</option>'+
+                                          '<option value="40">40</option>'+
+                                          '<option value="50">50</option>'+
+                                          '<option value="-1">所有</option>'+
+                                          '</select> 筆資料',
+                            "search": "搜尋:"
+                        },
+                        data:data,
+                        destroy:true
+                    });
+                    setChart(c3Data);
+                }
+    });
+}
+function setChart(c3col){
+    var chart = c3.generate({
+        bindto: '#chart',
+        data: {
+            xs: {
+                inClass: 'inClass_x',
+                quit5: 'quit5_x',
+                quit6: 'quit6_x',
+                quit7: 'quit7_x',
+                quit8: 'quit8_x',
+                quit9: 'quit9_x',
+                quit10: 'quit10_x',
+                quit11: 'quit11_x',
+                quit12: 'quit12_x',
+                quit13: 'quit13_x',
+            },
+            columns: c3col,
+            type: 'scatter'
+        },
+        axis: {
+            x: {
+                label: '有效平均分數',
+                tick: {
+                    fit: false
+                }
+            },
+            y: {
+                label: '平均挫折度'
+            }
+        }
+        ,
+        color: {
+            pattern:['#1f77b4','#fd7e14','#fd7e14','#fd7e14','#fd7e14','#fd7e14','#fd7e14','#fd7e14','#fd7e14','#fd7e14']
+        },
+        point: {
+            r: 5
+        },
+        grid: {
+            x: {
+                lines: [
+                    {value: 70.30795, text: '平均分數'}
+                ]
+            },
+            y: {
+                lines: [
+                    {value: 7.8574, text: '平均挫折度'}
+                ]
+            }
+        }
+        
+    });
+}
+</script>
+
+{% endblock %}
+
+{% block body%}
+    <div class="container-fluid">
+    <div class="row">
+    <div class="col-2">
+        <!-- Sidebar -->
+        <div class="card">
+          <div class="card-header">
+            選單
+          </div>
+          <ul class="list-group list-group-flush">
+            <li class="list-group-item">挫折度分析</li>
+          </ul>
+        </div>
+        <!--
+        <div class="card">
+            <div class="card-header">
+                題目列表
+            </div>
+            <div id="tree"></div>
+        </div>
+        -->
+    </div>
+    
+    <div class="col-10">
+    <div id="chart" style='height:500px'></div>
+    <table class="table table-responsive-sm table-hover table-striped" id='scoreboardtable'>
+		  <thead>
+			<tr>
+			  <th scope="col">學號</th>
+			  <th scope="col">姓名</th>
+              <th scope="col">學院</th>
+			  <th scope="col">班級</th>
+              <th scope="col">退選週次</th>
+              <th scope="col">平均成績</th>
+			  <th scope="col">平均挫折度</th>
+			  <th scope="col">w02_lab</th>
+			  <th scope="col">w03_lab</th>
+			  <th scope="col">w04_lab</th>
+              <th scope="col">Exam1</th>
+              <th scope="col">w07_lab</th>
+			  <th scope="col">w09_lab</th>
+              <th scope="col">Exam2</th>
+			</tr>
+		  </thead>
+		  <tbody></tbody>
+	</table>
+    </div>
+    </div>
+    </div>
+{% endblock %}
+{% block onloadscript %}
+<script>
+// getProblemList();
+initDataTable();
+getFrustrationData();
+</script>
+{% endblock %}

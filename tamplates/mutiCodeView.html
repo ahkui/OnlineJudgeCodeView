@@ -1,0 +1,318 @@
+{% extends "base.html" %}
+{% block title %}CodeView{% endblock %}
+    
+{% block head %}    
+    <!--popper-->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.6/umd/popper.min.js" integrity="sha384-wHAiFfRlMFy6i5SRaxvfOCifBUQy1xHdJ/yoi7FRNXMRBu5WHdZYu1hA6ZOblgut" crossorigin="anonymous"></script>
+    
+    <!--Bootstrap Select-->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-select@1.13.9/dist/css/bootstrap-select.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap-select@1.13.9/dist/js/bootstrap-select.min.js"></script>
+    
+    <!--highlight-->
+    <link href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/default.min.css" rel="stylesheet" />
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+    
+    <!--treeview-->
+    <link href="https://cdn.jsdelivr.net/npm/patternfly-bootstrap-treeview@2.1.0/dist/bootstrap-treeview.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/patternfly-bootstrap-treeview@2.1.8/dist/bootstrap-treeview.min.js"></script>
+  
+    
+    <style type="text/css">
+    .card-info{
+        max-width:15%;
+        background-color:#d9edf7;
+    }
+    .card-code{
+        width:35%;
+        max-width:35%;
+        background-color:#F0F0F0;
+    }
+    .card-code-body{
+        background-color:#F0F0F0;
+    }
+    .codeAdd{
+        background-color:lightgreen;
+    }
+    .codeChange{
+        background-color:#FFE5B5;
+    }
+    .codeDelete{
+        background-color:pink;
+    }
+    .codeArea{
+        width:100%;
+    }
+    .lineNumber>span{
+        color:gray;
+        !important
+    }
+    .lineNumber{
+        width:30px;
+    }
+    .info{
+        background-color:#d9edf7;
+        height:100%
+    }
+    </style>
+{% endblock %}  
+
+
+{% block script %}
+<script>
+function getcode(nid,idx){
+    let contest = $("#contest_id").val()
+    let qid = $("#question_id").val()
+    $.ajax({
+        url: '/getcode/',
+        type: 'POST',
+        data: {'contest':contest,'qid':qid,'lnid':nid,'lidx':idx,'rnid':nid,'ridx':idx+1},
+        dataType: 'json',
+        timeout: 5000,
+        success: function(result) {
+                    $('#'+nid+'_ltimes').html(idx)
+                    $('#'+nid+'_lresult').html(result['left']['result'])
+                    $('#'+nid+'_ltime').html(result['left']['time'])
+                    $('#'+nid+'_leftcode').html(result['left']['code'])
+                    
+                    $('#'+nid+'_rtimes').html(idx+1)
+                    $('#'+nid+'_rresult').html(result['right']['result'])
+                    $('#'+nid+'_rtime').html(result['right']['time'])
+                    $('#'+nid+'_rightcode').html(result['right']['code'])
+                    
+                    let totalSubmitID = nid+"_totalSubmit"
+                    let totalSubmit = parseInt($("#"+totalSubmitID).html());
+                    if(idx+1!=totalSubmit) $('#'+nid+'_btn_next').removeAttr("disabled");
+                    else $('#'+nid+'_btn_next').attr("disabled",true);
+                    if(idx!=1) $('#'+nid+'_btn_prev').removeAttr("disabled");
+                    else $('#'+nid+'_btn_prev').attr("disabled",true);
+                    
+                    $('pre code').each(function(i, e) {hljs.highlightBlock(e)});
+                }
+    });
+}
+function getProblemList(){
+    $.ajax({
+        url: '/getProblemList/',
+        type: 'GET',
+        dataType: 'json',
+        timeout: 5000,
+        success: function(result) {
+                    let root=[];
+                    for(let key in result){
+                        let contest={'selectable': false,'nodes':[]};
+                        contest['text']=result[key]['title'];
+                        for(let problemID in result[key]['problem']){
+                            contest['nodes'].push({'text':result[key]['problem'][problemID],
+                                                    'icon':"far fa-edit",
+                                                    'selectedIcon': "far fa-edit",
+                                                    'tags':[key,problemID]});
+                        }
+                        root.push(contest);
+                    }
+                    $('#tree').treeview({data: root,
+                        collapseIcon: "fas fa-folder-open",
+                        expandIcon: "fas fa-folder",
+                        levels:1});
+                    $('#tree').on('nodeSelected', function(event, node) {
+                           let contestID = parseInt(node.tags[0]);
+                           let problemID = parseInt(node.tags[1]);
+                           $("#contest_id").val(contestID)
+                           $("#question_id").val(problemID)
+                           
+                           getStudentData(contestID,problemID);
+                    });    
+                }
+    });
+}
+function getStudentData(contestID,problemID){
+    $.ajax({
+        url: '/getAllStudent/',
+        type: 'POST',
+        data: {'contest':contestID,'pid':problemID},
+        dataType: 'json',
+        timeout: 5000,
+        success: function(result) {
+                    $('#list_all_nid').empty();
+                    for(let nid in result){
+                        let option = document.createElement('option');
+                        $(option).attr("value",contestID+","+problemID+",\'"+result[nid].toString()+"\',"+nid)
+                        $(option).text(nid+"("+result[nid].length+")");
+                        $('#list_all_nid').append(option)
+                    }
+                    $('#list_all_nid').selectpicker('refresh');
+                    $('#list_all_nid').selectpicker('render');  
+                }
+    });
+}
+function btn_init(){
+    let btn_prev = $(".btn_prev");
+    for(i=0;i<btn_prev.length;i++){
+        $(btn_prev[i]).attr("disabled",true);
+        $(btn_prev[i]).click(function(){
+            let nid = $(this).attr('id').split('_')[0];
+            let timesID = nid+"_ltimes"
+            let times = parseInt($("#"+timesID).html())-1
+            if(times!=0){
+                getcode(nid,times);
+            }
+            
+        })
+    }
+    
+    let btn_next = $(".btn_next");
+    for(i=0;i<btn_next.length;i++){
+        let nid = $(btn_next[i]).attr('id').split('_')[0];
+        let totalSubmitID = nid+"_totalSubmit"
+        let totalSubmit = parseInt($("#"+totalSubmitID).html());
+        if(totalSubmit>2) $(btn_next[i]).removeAttr("disabled");
+        else $(btn_next[i]).attr("disabled",true);
+        
+        $(btn_next[i]).click(function(){
+            console.log(1)
+            let nid = $(this).attr('id').split('_')[0];
+            let timesID = nid+"_ltimes"
+            let times = parseInt($("#"+timesID).html())+1
+            if(times!=totalSubmit){
+                getcode(nid,times);
+            }
+        })
+    }
+}
+</script>
+{% endblock %}
+{% block body%}
+    <div class="container-fluid">
+    <div class="row">
+    <div class="col-2">
+        <!-- Sidebar -->
+        <div class="card">
+          <div class="card-header">
+            控制台
+          </div>
+          <ul class="list-group list-group-flush">
+            <li class="list-group-item">
+                <div> 
+                    學號：<select id="list_all_nid" class="selectpicker show-tick" multiple data-live-search="true"></select>
+                    <form action="./mutiCodeView/" method="post">
+                        {% csrf_token %}
+                        <input type="text" name="student_id" id="student_id" value="{{ student_id }}" hidden>
+                        <input type="text" name="contest_id" id="contest_id" value="{{ contest_id }}" hidden>
+                        <input type="text" name="question_id" id="question_id" value="{{ question_id }}" hidden>
+                        <button type="submit" class="btn btn-secondary col-6" id="submit">確認</button>
+                    </form>
+                    
+                </div>
+            </li>
+          </ul>
+        </div>
+        <div class="card">
+            <div class="card-header">
+                題目列表
+            </div>
+            <div id="tree"></div>
+        </div>
+        
+    </div>
+    
+    <div class="col-10">
+        <!-- Page Content -->
+        <div id="content">
+            <div class="card-group">
+                <div class="card card-info">
+                    <div class="card-header">
+                        學號/提交
+                    </div>
+                </div>
+                <div class="card card-info">
+                    <div class="card-header">
+                        提交資訊
+                    </div>
+                </div>
+                <div class="card card-code">
+                    <div class="card-header">
+                        程式碼1
+                    </div>
+                </div>
+                <div class="card card-code">
+                    <div class="card-header">
+                        程式碼2
+                    </div>
+                </div>
+            </div>
+            {% for userdata in data %}
+            <div class="card-group">
+                <div class="card card-info">
+                    <div class="card-body p-0">
+                        <div class="card-text info">
+                            學號:<span id="{{ userdata.nid }}_nid">{{ userdata.nid }}</span><br>
+                            姓名:<span id="{{ userdata.nid }}_username">{{ userdata.username }}</span></br>
+                            學院:<span id="{{ userdata.nid }}_major">{{ userdata.major }}</span><br>
+                            班級:<span id="{{ userdata.nid }}_major">{{ userdata.class }}</span><br>
+                            本題作答次數:<span id="{{ userdata.nid }}_totalSubmit">{{ userdata.totalSubmit }}</span><br>
+                            <button type="button" class="btn btn-secondary col-5 btn_prev" id="{{ userdata.nid }}_btn_prev">上一頁</button>
+                            <button type="button" class="btn btn-secondary col-5 btn_next" id="{{ userdata.nid }}_btn_next">下一頁</button><br>
+                        </div>
+                    </div>
+                </div>
+                <div class="card card-info">
+                    <div class="card-body p-0">
+                        <div class="card-text info">
+                                Left:<br>
+                                提交:第<span id="{{ userdata.nid }}_ltimes">{{ userdata.leftSubmit }}</span>次提交<br>
+                                結果:<span id="{{ userdata.nid }}_lresult">{{ userdata.leftResult }}</span><br>
+                                時間:<span id="{{ userdata.nid }}_ltime">{{ userdata.leftTime }}</span><br>
+                                Right:<br>
+                                提交:第<span id="{{ userdata.nid }}_rtimes">{{ userdata.rightSubmit }}</span>次提交<br>
+                                結果:<span id="{{ userdata.nid }}_rresult">{{ userdata.rightResult }}</span><br>
+                                時間:<span id="{{ userdata.nid }}_rtime">{{ userdata.rightTime }}</span><br>
+                        </div>
+                    </div>
+                </div>
+                <div class="card card-code">
+                    <div class="card-body p-0 card-code-body">
+                        <div class="card-text">
+                            <pre><code class="python"><table id="{{ userdata.nid }}_leftcode" class="codeArea">
+                            {% for lines in userdata.leftCode %}
+                                <tr><td class="lineNumber">{{ lines.lineNumber }}</td><td class="{{ lines.classname }}">{{ lines.code }}</td></tr>
+                            {% endfor %}
+                            </table></code></pre>
+                        </div>
+                    </div>
+                </div>
+                <div class="card card-code">
+                    <div class="card-body p-0 card-code-body">
+                        <div class="card-text">
+                            <pre><code class="python"><table id="{{ userdata.nid }}_rightcode" class="codeArea">
+                            {% for lines in userdata.rightCode %}
+                                <tr><td class="lineNumber">{{ lines.lineNumber }}</td><td class="{{ lines.classname }}">{{ lines.code }}</td></tr>
+                            {% endfor %}
+                            </table></code></pre>
+                        </div>
+                    </div>
+                </div>
+                
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    </div>
+    </div>
+{% endblock %}
+{% block onloadscript %}
+<script>
+hljs.initHighlightingOnLoad();
+getProblemList();
+
+$('#list_all_nid').on('change', function(e){
+                        let selectedItem = $('#list_all_nid').find("option:selected")
+                        let nid = ""
+                        for(let i=0;i<selectedItem.length;i++){
+                           if(i!=0)nid+=","
+                           nid+=selectedItem[i].innerHTML.split("(")[0]
+                        }
+                        $("#student_id").val(nid);
+                    });
+btn_init();
+</script>
+{% endblock %}

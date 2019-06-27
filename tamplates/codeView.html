@@ -1,0 +1,298 @@
+{% extends "base.html" %}
+{% block title %}CodeView{% endblock %}
+    
+{% block head %}    
+    <!--popper-->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.6/umd/popper.min.js" integrity="sha384-wHAiFfRlMFy6i5SRaxvfOCifBUQy1xHdJ/yoi7FRNXMRBu5WHdZYu1hA6ZOblgut" crossorigin="anonymous"></script>
+    
+    <!--Bootstrap Select-->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-select@1.13.9/dist/css/bootstrap-select.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap-select@1.13.9/dist/js/bootstrap-select.min.js"></script>
+    
+    <!--highlight-->
+    <link href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/default.min.css" rel="stylesheet" />
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+    
+    <!--treeview-->
+    <link href="https://cdn.jsdelivr.net/npm/patternfly-bootstrap-treeview@2.1.0/dist/bootstrap-treeview.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/patternfly-bootstrap-treeview@2.1.8/dist/bootstrap-treeview.min.js"></script>
+  
+    
+    <style type="text/css">
+    .codeAdd{
+        background-color:lightgreen;
+    }
+    .codeChange{
+        background-color:#FFE5B5;
+    }
+    .codeDelete{
+        background-color:pink;
+    }
+    .codeArea{
+        width:100%;
+    }
+    .lineNumber>span{
+        color:gray;
+        !important
+    }
+    .lineNumber{
+        width:30px;
+    }
+    .info{
+        background-color:#d9edf7;
+    }
+    </style>
+{% endblock %}  
+
+
+{% block script %}
+<script>
+function getcode(contest,qid,lnid,lidx,rnid,ridx){
+    $.ajax({
+        url: '/getcode/',
+        type: 'POST',
+        data: {'contest':contest,'qid':qid,'lnid':lnid,'lidx':lidx,'rnid':rnid,'ridx':ridx},
+        dataType: 'json',
+        timeout: 5000,
+        success: function(result) {
+                    $('#rightcode').html(result['right']['code'])
+                    $('#rid').html(result['right']['id'])
+                    $('#rauthor').html(rnid)
+                    $('#rtimes').html('第 '+ ridx +' 次提交')
+                    $('#rresult').html(result['right']['result'])
+                    $('#rtime').html(result['right']['time'])
+                    $('#rip').html(result['right']['ip'])
+                    
+                    $('#leftcode').html(result['left']['code'])
+                    $('#lid').html(result['left']['id'])
+                    $('#lauthor').html(lnid)
+                    $('#ltimes').html('第 '+ lidx +' 次提交')
+                    $('#lresult').html(result['left']['result'])
+                    $('#ltime').html(result['left']['time'])
+                    $('#lip').html(result['left']['ip'])
+                    $('pre code').each(function(i, e) {hljs.highlightBlock(e)});
+                }
+    });
+}
+function getProblemList(){
+    $.ajax({
+        url: '/getProblemList/',
+        type: 'GET',
+        dataType: 'json',
+        timeout: 5000,
+        success: function(result) {
+                    let root=[];
+                    for(let key in result){
+                        let contest={'selectable': false,'nodes':[]};
+                        contest['text']=result[key]['title'];
+                        for(let problemID in result[key]['problem']){
+                            contest['nodes'].push({'text':result[key]['problem'][problemID],
+                                                    'icon':"far fa-edit",
+                                                    'selectedIcon': "far fa-edit",
+                                                    'tags':[key,problemID]});
+                        }
+                        root.push(contest);
+                    }
+                    $('#tree').treeview({data: root,
+                        collapseIcon: "fas fa-folder-open",
+                        expandIcon: "fas fa-folder",
+                        levels:1});
+                    $('#tree').on('nodeSelected', function(event, node) {
+                           let contestID = parseInt(node.tags[0]);
+                           let problemID = parseInt(node.tags[1]);
+                           getStudentData(contestID,problemID);
+                    });    
+                }
+    });
+}
+function getStudentData(contestID,problemID){
+    $.ajax({
+        url: '/getAllStudent/',
+        type: 'POST',
+        data: {'contest':contestID,'pid':problemID},
+        dataType: 'json',
+        timeout: 5000,
+        success: function(result) {
+                    $('#list_all_nid').empty();
+                    let isFirst = true;
+                    for(let nid in result){
+                        let option = document.createElement('option');
+                        $(option).attr("value",contestID+","+problemID+",\'"+result[nid].toString()+"\',"+nid)
+                        $(option).text(nid+"("+result[nid].length+")");
+                        $('#list_all_nid').append(option)
+                        if(isFirst){
+                            isFirst = false;
+                            setSubmitTimes(contestID,problemID,result[nid].toString(),nid)
+                        }
+                    }
+                    $('#list_all_nid').selectpicker('refresh');
+                    $('#list_all_nid').selectpicker('render');  
+                }
+    });
+}
+function setSubmitTimes(contestID,problemID,data,nid){
+    $('#btn_nid').html(nid);
+    nid = nid.split("(")[0];
+    $('#list_all_submit').empty();
+    data = data.split(',')
+    let isFirst = true;
+    let ele = new Object();
+    for(let key in data){
+        pid = parseInt(key);
+        let a = document.createElement('a');
+        $(a).attr("class","dropdown-item");
+        $(a).attr("onclick","setCodeSelected($(this).text(),"+contestID+","+problemID+",\""+nid+"\","+(pid+1)+",\""+nid+"\","+(pid+2)+")")
+        $(a).text((pid+1).toString()+" : "+data[key]);
+        
+        $('#list_all_submit').append(a)
+        if(isFirst){
+            isFirst = false;
+            ele = $(a)
+        }
+    }
+    ele.click();
+}
+function setCodeSelected(txt,contest,qid,lnid,lidx,rnid,ridx){
+    $('#btn_submit').html(txt);
+    let nowIdx = parseInt(txt.split(' ')[0])
+    if(nowIdx==1){
+        $('#btn_prev').attr("disabled", true);
+    }
+    else{
+        $('#btn_prev').removeAttr("disabled");
+    }
+    if(nowIdx==$("#list_all_submit>a").length){
+        $('#btn_next').attr("disabled", true);
+    }
+    else{
+        $('#btn_next').removeAttr("disabled");
+    }
+    getcode(contest,qid,lnid,lidx,rnid,ridx);
+}
+</script>
+{% endblock %}
+{% block body%}
+    <div class="container-fluid">
+    <div class="row">
+    <div class="col-2">
+        <!-- Sidebar -->
+        <div class="card">
+          <div class="card-header">
+            控制台
+          </div>
+          <ul class="list-group list-group-flush">
+          <!--
+            <li class="list-group-item">
+                <div> 控制：
+                    <button class="btn btn-secondary dropdown-toggle" type="button" id="btn_control" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    統一
+                    </button>
+                    <div class="dropdown-menu" aria-labelledby="btn_control">
+                        <a class="dropdown-item" href="#">統一</a>
+                        <a class="dropdown-item" href="#">分別</a>
+                    </div>
+                </div>
+            </li>-->
+            <li class="list-group-item">
+                <div> 學號：<select id="list_all_nid" class="selectpicker show-tick form-control" data-live-search="true"></select>
+                </div>
+                
+
+                <div> 提交：
+                    <button class="btn btn-secondary dropdown-toggle" type="button" id="btn_submit" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    
+                    </button>
+                    <div class="dropdown-menu" aria-labelledby="btn_submit" id="list_all_submit"></div>
+                </div>
+                <div class="row" style="padding-top:5px">
+                    <button type="button" class="btn btn-secondary col-6" id="btn_prev">上一頁</button>
+                    <button type="button" class="btn btn-secondary col-6" id="btn_next">下一頁</button>
+                </div>
+            </li>
+          </ul>
+        </div>
+        <div class="card">
+            <div class="card-header">
+                題目列表
+            </div>
+            <div id="tree"></div>
+        </div>
+        
+    </div>
+    
+    <div class="col-10">
+        <!-- Page Content -->
+        <div id="content">
+            <div class="card-group">
+                <div class="card">
+                    <div class="card-header">
+                        <span id="lauthor"></span>-<span id="ltimes"></span>
+                    </div>
+                    <div class="card-body p-0">
+                      <div class="card-text info">
+                                ID:<span id="lid"></span><br>
+                                結果:<span id="lresult"></span><br>
+                                時間:<span id="ltime"></span><br>
+                                IP:<span id="lip"></span>
+                            </div>
+                        <pre><code class="python"><table id="leftcode" class="codeArea">
+                        
+                        </table></code></pre>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <span id="rauthor"></span>-<span id="rtimes"></span>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="card-text info">
+                                ID:<span id="rid"></span><br>
+                                結果:<span id="rresult"></span><br>
+                                時間:<span id="rtime"></span><br>
+                                IP:<span id="rip"></span>
+                        </div>
+                        <pre><code class="python"><table id="rightcode" class="codeArea">
+                        
+                        </table></code></pre>
+                      
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    </div>
+    </div>
+{% endblock %}
+{% block onloadscript %}
+<script>
+hljs.initHighlightingOnLoad();
+getProblemList();
+$('#list_all_nid').on('change', function(e){
+                        contestID = this.value.split('\'')[0].split(',')[0]
+                        problemID = this.value.split('\'')[0].split(',')[1]
+                        nid = this.value.split('\'')[2].split(',')[1]
+                        data = this.value.split('\'')[1]
+                        setSubmitTimes(contestID,problemID,data,nid)
+                    });
+$('#btn_prev').attr("disabled",true);
+$('#btn_prev').click(function(){
+    let now = $("#btn_submit").html()
+    let data = $("#list_all_submit>a")
+    for(let idx=0;idx<data.length;idx++){
+        if($(data[idx]).html()==now){
+            $(data[idx-1]).click()
+        }
+    }
+})
+$('#btn_next').attr("disabled",true);
+$('#btn_next').click(function(){
+    let now = $("#btn_submit").html()
+    let data = $("#list_all_submit>a")
+    for(let idx=0;idx<data.length;idx++){
+        if($(data[idx]).html()==now){
+            $(data[idx+1]).click()
+        }
+    }
+})
+</script>
+{% endblock %}
