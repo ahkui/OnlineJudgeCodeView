@@ -46,20 +46,28 @@ def getFrustrationData(request):
                     data[nid] = copy.deepcopy(defaultDict)
                 if len(oneUser)!=0:
                     data[nid][key_use] += 1#至少交了一次
+                    data[nid][key] = 0#計算目前為止的提交次數,因之之很有可能有提交多次, 需初始化
                     if 'Accepted' not in oneUser:#沒通過
-                        data[nid][key] += 2
+                        data[nid][key] = 2
+                        print(nid + ' fail '  + str(data[nid][key]))
                     else:
-                        data[nid][key_score]+= 100/len(contestData)
+                        data[nid][key_score]= 100/len(contestData)
                     
                     if len(oneUser) > avg + 3*std:#高於三個標準差+3
                         data[nid][key] += 3
+                        print(nid + ' add 3 = ' + str(data[nid][key]))
                     elif len(oneUser) > avg + 2*std:#高於三個標準差+2
                         data[nid][key] += 2
+                        print(nid + ' add 2 = ' + str(data[nid][key]))
                     elif len(oneUser) > avg + 1*std:#高於三個標準差+1
                         data[nid][key] += 1
+                        print(nid + ' add 1 = ' + str(data[nid][key]))
                 else:
                     data[nid][key] += 2
-            print(data[nid][key])
+                    print(nid + ' do not')
+                if(nid == 'd0410124'):
+                    print('end d0410124 =' + key + ' ' +str(data[nid][key]))
+            #print(data[nid][key])
 #         for nid in data:
 #             if data[nid][key_use]!=0:
 #                 data[nid][key]/=maxNumber
@@ -74,8 +82,8 @@ def getFrustrationData(request):
             info = stuInfo[nid]
         except:
             needDrop.append(nid)
-            print("NeedDrop:",nid)
-        print(info)
+            #print("NeedDrop:",nid)
+        #print(info)
         data[nid]['name'] = info['name']
         data[nid]['major'] = info['major']
         data[nid]['class'] = info['class']
@@ -245,5 +253,5 @@ def getStudentInformation():
             line = line.split(',')
             if line[0] in student:
                 student[line[0]]['quit'] = '第 %02d 週'%(int(line[1]))
-    print(student)
+    #print(student)
     return student
