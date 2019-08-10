@@ -49,31 +49,23 @@ def getFrustrationData(request):
                     data[nid][key] = 0#計算目前為止的提交次數,因之之很有可能有提交多次, 需初始化
                     if 'Accepted' not in oneUser:#沒通過
                         data[nid][key] = 2
-                        print(nid + ' fail '  + str(data[nid][key]))
+                        
                     else:
                         data[nid][key_score]= 100/len(contestData)
                     
                     if len(oneUser) > avg + 3*std:#高於三個標準差+3
                         data[nid][key] += 3
-                        print(nid + ' add 3 = ' + str(data[nid][key]))
+                        
                     elif len(oneUser) > avg + 2*std:#高於三個標準差+2
                         data[nid][key] += 2
-                        print(nid + ' add 2 = ' + str(data[nid][key]))
                     elif len(oneUser) > avg + 1*std:#高於三個標準差+1
                         data[nid][key] += 1
-                        print(nid + ' add 1 = ' + str(data[nid][key]))
                 else:
                     data[nid][key] += 2
-                    print(nid + ' do not')
-                if(nid == 'd0410124'):
-                    print('end d0410124 =' + key + ' ' +str(data[nid][key]))
             #print(data[nid][key])
-#         for nid in data:
-#             if data[nid][key_use]!=0:
-#                 data[nid][key]/=maxNumber
-#                 data[nid][key]*=100
-#             else:
-#                 data[nid][key]=-1
+            for nid in data:
+                 if data[nid][key_use]==0:
+                    data[nid][key] = -1
     
     stuInfo = getStudentInformation()
     needDrop = []
@@ -88,7 +80,7 @@ def getFrustrationData(request):
         data[nid]['major'] = info['major']
         data[nid]['class'] = info['class']
         data[nid]['quit'] = info['quit']
-        data[nid]['avg'] = np.mean(np.array([data[nid]['%d_total'%(contestID)] for contestID in [23,30,39,48,57,64,74] ]))
+        data[nid]['avg'] = np.mean(np.array([data[nid]['%d_total'%(contestID)] for contestID in [23,30,39,48,57,64,74] if data[nid]['%d_total'%(contestID)]!=-1]))
         data[nid]['avg_score'] = np.mean(np.array([data[nid]['%d_score'%(contestID)] for contestID in [23,30,39,48,57,64,74] if data[nid]['%d_total'%(contestID)]!=-1]))
     for nid in needDrop:
         del data[nid]
