@@ -46,12 +46,14 @@ def getFrustrationData(request):
                     data[nid] = copy.deepcopy(defaultDict)
                 if len(oneUser)!=0:
                     data[nid][key_use] += 1#至少交了一次
-                    data[nid][key] = 0#計算目前為止的提交次數,因之之很有可能有提交多次, 需初始化
+                    #data[nid][key] = 0#計算目前為止的提交次數,因之之很有可能有提交多次, 需初始化
                     if 'Accepted' not in oneUser:#沒通過
-                        data[nid][key] = 2
+                        data[nid][key] += 2
+                        print(nid + ' ' + key + ' no accepted')
                         
                     else:
-                        data[nid][key_score]= 100/len(contestData)
+                        #有Accepted學生得到該題成績
+                        data[nid][key_score] += 100/len(contestData)
                     
                     if len(oneUser) > avg + 3*std:#高於三個標準差+3
                         data[nid][key] += 3
@@ -64,9 +66,15 @@ def getFrustrationData(request):
                     data[nid][key] += 2
             #print(data[nid][key])
             for nid in data:
+                #如果沒有提交設-1
                  if data[nid][key_use]==0:
                     data[nid][key] = -1
-    
+        #把每LAB每個學生的總挫折度進行平均
+        for nid in data:
+            if(data[nid][key] != -1):
+                print(nid + ' ' + str(data[nid][key]) + ' / ' + str(len(contestData)))
+                data[nid][key] = data[nid][key] / len(contestData)
+            
     stuInfo = getStudentInformation()
     needDrop = []
     for nid in data:
