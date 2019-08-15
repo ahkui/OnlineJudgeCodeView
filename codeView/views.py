@@ -49,7 +49,6 @@ def getFrustrationData(request):
                     #data[nid][key] = 0#計算目前為止的提交次數,因之之很有可能有提交多次, 需初始化
                     if 'Accepted' not in oneUser:#沒通過
                         data[nid][key] += 2
-                        print(nid + ' ' + key + ' no accepted')
                         
                     else:
                         #有Accepted學生得到該題成績
@@ -72,11 +71,12 @@ def getFrustrationData(request):
         #把每LAB每個學生的總挫折度進行平均
         for nid in data:
             if(data[nid][key] != -1):
-                print(nid + ' ' + str(data[nid][key]) + ' / ' + str(len(contestData)))
                 data[nid][key] = data[nid][key] / len(contestData)
             
     stuInfo = getStudentInformation()
     needDrop = []
+    count = 0
+    avg = 0
     for nid in data:
         try:
             info = stuInfo[nid]
@@ -90,6 +90,11 @@ def getFrustrationData(request):
         data[nid]['quit'] = info['quit']
         data[nid]['avg'] = np.mean(np.array([data[nid]['%d_total'%(contestID)] for contestID in [23,30,39,48,57,64,74] if data[nid]['%d_total'%(contestID)]!=-1]))
         data[nid]['avg_score'] = np.mean(np.array([data[nid]['%d_score'%(contestID)] for contestID in [23,30,39,48,57,64,74] if data[nid]['%d_total'%(contestID)]!=-1]))
+     
+        tmp = np.mean(np.array([data[nid]['%d_total'%(contestID)] for contestID in [23,30,39,48,57,64,74] if data[nid]['%d_total'%(contestID)]!=-1]))
+        avg += tmp
+        count += 1
+    print('平均挫折 = ' +str(avg/count))
     for nid in needDrop:
         del data[nid]
     return JsonResponse(data)
