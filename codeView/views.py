@@ -23,13 +23,13 @@ def getFrustrationData(request):
         return avg,std
     data = {}
     defaultDict = {}
-    for contestID in [23,30,39,48,57,64,74]:
+    for contestID in [97,107,112,116,118,123,124]:
         defaultDict['%d_total'%(contestID)]=0
         defaultDict['%d_use'%(contestID)]=0
         defaultDict['%d_score'%(contestID)]=0
         defaultDict['avg']=0
     
-    for contestID in [23,30,39,48,57,64,74]:
+    for contestID in [97,107,112,116,118,123,124]:
         filename = "json/contestData_%d.json"%(contestID)
         with open(filename,mode="r",encoding="utf8") as f:
             contestData = json.load(f)
@@ -41,60 +41,53 @@ def getFrustrationData(request):
             avg,std = getSubmitAvgStd(contestData[Qid])
             
             for nid in contestData[Qid]:
+                #if(data[nid][key] > 0):
+                    #break
                 oneUser = [submit['result'] for submit in contestData[Qid][nid]['code']]
                 if nid not in data:
                     data[nid] = copy.deepcopy(defaultDict)
                 if len(oneUser)!=0:
-                    data[nid][key_use] += 1#至少交了一次
-                    #data[nid][key] = 0#計算目前為止的提交次數,因之之很有可能有提交多次, 需初始化
+                    data[nid][key_use] = 0#至少交了一次
                     if 'Accepted' not in oneUser:#沒通過
-                        data[nid][key] += 2
-                        
+                        data[nid][key] = 2
                     else:
-                        #有Accepted學生得到該題成績
-                        data[nid][key_score] += 100/len(contestData)
+                        data[nid][key_score]= 100/len(contestData)
                     
                     if len(oneUser) > avg + 3*std:#高於三個標準差+3
                         data[nid][key] += 3
-                        
                     elif len(oneUser) > avg + 2*std:#高於三個標準差+2
                         data[nid][key] += 2
                     elif len(oneUser) > avg + 1*std:#高於三個標準差+1
                         data[nid][key] += 1
                 else:
                     data[nid][key] += 2
+                #if(nid == 'd0481400'):
+                    #print('d0481400 =' + key + ' ' +str(data[nid][key]))
             #print(data[nid][key])
-            for nid in data:
-                #如果沒有提交設-1
-                 if data[nid][key_use]==0:
-                    data[nid][key] = -1
-        #把每LAB每個學生的總挫折度進行平均
-        for nid in data:
-            if(data[nid][key] != -1):
-                data[nid][key] = data[nid][key] / len(contestData)
-            
+#         for nid in data:
+#             if data[nid][key_use]!=0:
+#                 data[nid][key]/=maxNumber
+#                 data[nid][key]*=100
+#             else:
+#                 data[nid][key]=-1
+    
     stuInfo = getStudentInformation()
     needDrop = []
-    count = 0
-    avg = 0
+    info = dict()
     for nid in data:
         try:
-            info = stuInfo[nid]
+            info = stuInfo[nid.lower()]
         except:
             needDrop.append(nid)
             #print("NeedDrop:",nid)
-        #print(info)
+        print(info)
         data[nid]['name'] = info['name']
         data[nid]['major'] = info['major']
         data[nid]['class'] = info['class']
         data[nid]['quit'] = info['quit']
-        data[nid]['avg'] = np.mean(np.array([data[nid]['%d_total'%(contestID)] for contestID in [23,30,39,48,57,64,74] if data[nid]['%d_total'%(contestID)]!=-1]))
-        data[nid]['avg_score'] = np.mean(np.array([data[nid]['%d_score'%(contestID)] for contestID in [23,30,39,48,57,64,74] if data[nid]['%d_total'%(contestID)]!=-1]))
-     
-        tmp = np.mean(np.array([data[nid]['%d_total'%(contestID)] for contestID in [23,30,39,48,57,64,74] if data[nid]['%d_total'%(contestID)]!=-1]))
-        avg += tmp
-        count += 1
-    print('平均挫折 = ' +str(avg/count))
+        data[nid]['avg'] = np.mean(np.array([data[nid]['%d_total'%(contestID)] for contestID in [97,107,112,116,118,123,124] ]))
+        data[nid]['avg_score'] = np.mean(np.array([data[nid]['%d_score'%(contestID)] for contestID in [97,107,112,116,118,123,124] if data[nid]['%d_total'%(contestID)]!=-1]))
+    
     for nid in needDrop:
         del data[nid]
     return JsonResponse(data)
@@ -249,9 +242,10 @@ def getProblemList(request):
     
 def getStudentInformation():
     student={}
-    with open("json/1072Python_name.csv",encoding="utf8",mode="r") as f:
+    with open("json/1081Python_name.csv",encoding="utf8",mode="r") as f:
         for line in f:
             line = line.split(',')
+            #print(line)
             student[line[0].lower()] = {'name':line[1],'class':line[2],'major':line[5],'quit':"X"}
     with open("json/quit.csv",encoding="utf8",mode="r") as f:
         for line in f:

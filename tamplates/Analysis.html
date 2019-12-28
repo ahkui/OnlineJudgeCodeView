@@ -158,13 +158,13 @@ function getFrustrationData(){
                         oneData.push(value['quit'])
                         oneData.push(Number(value['avg_score']).toFixed(2))
                         oneData.push(Number(value['avg']).toFixed(2))//平均挫折度
-                        oneData.push(Number(value['23_total']).toFixed(2))
-                        oneData.push(Number(value['30_total']).toFixed(2))
-                        oneData.push(Number(value['39_total']).toFixed(2))
-                        oneData.push(Number(value['48_total']).toFixed(2))
-                        oneData.push(Number(value['57_total']).toFixed(2))
-                        oneData.push(Number(value['64_total']).toFixed(2))
-                        oneData.push(Number(value['74_total']).toFixed(2))
+                        oneData.push(Number(value['97_total']).toFixed(2))
+                        oneData.push(Number(value['107_total']).toFixed(2))
+                        oneData.push(Number(value['112_total']).toFixed(2))
+                        oneData.push(Number(value['116_total']).toFixed(2))
+                        oneData.push(Number(value['118_total']).toFixed(2))
+                        oneData.push(Number(value['123_total']).toFixed(2))
+                        oneData.push(Number(value['124_total']).toFixed(2))
                         data.push(oneData)
                         if(value['quit']=="X"){
                             c3Data[0].push(Number(value['avg_score']).toFixed(2))
@@ -292,7 +292,7 @@ function setChart(c3col){
             },
             y: {
                 lines: [
-                    {value: 0.3769018224573779, text: '平均挫折度'}
+                    {value: 7.8574, text: '平均挫折度'}
                 ]
             }
         }
