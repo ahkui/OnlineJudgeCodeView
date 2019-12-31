@@ -23,13 +23,14 @@ def getFrustrationData(request):
         return avg,std
     data = {}
     defaultDict = {}
-    for contestID in [97,107,112,116,118,123,124]:
+    #init defaultDict
+    for contestID in [97,107,112,116,118,123,124,133]:
         defaultDict['%d_total'%(contestID)]=0
         defaultDict['%d_use'%(contestID)]=0
         defaultDict['%d_score'%(contestID)]=0
         defaultDict['avg']=0
     
-    for contestID in [97,107,112,116,118,123,124]:
+    for contestID in [97,107,112,116,118,123,124,133]:
         filename = "json/contestData_%d.json"%(contestID)
         with open(filename,mode="r",encoding="utf8") as f:
             contestData = json.load(f)
@@ -46,12 +47,12 @@ def getFrustrationData(request):
                 oneUser = [submit['result'] for submit in contestData[Qid][nid]['code']]
                 if nid not in data:
                     data[nid] = copy.deepcopy(defaultDict)
-                if len(oneUser)!=0:
+                if len(oneUser) > 0:
                     data[nid][key_use] = 0#至少交了一次
                     if 'Accepted' not in oneUser:#沒通過
                         data[nid][key] = 2
                     else:
-                        data[nid][key_score]= 100/len(contestData)
+                        data[nid][key_score]+= 100/len(contestData)#加入每一次的lab的成績
                     
                     if len(oneUser) > avg + 3*std:#高於三個標準差+3
                         data[nid][key] += 3
@@ -59,10 +60,8 @@ def getFrustrationData(request):
                         data[nid][key] += 2
                     elif len(oneUser) > avg + 1*std:#高於三個標準差+1
                         data[nid][key] += 1
-                else:
-                    data[nid][key] += 2
-                #if(nid == 'd0481400'):
-                    #print('d0481400 =' + key + ' ' +str(data[nid][key]))
+                else:#沒有交作業
+                    data[nid][key] = -1
             #print(data[nid][key])
 #         for nid in data:
 #             if data[nid][key_use]!=0:
@@ -80,13 +79,13 @@ def getFrustrationData(request):
         except:
             needDrop.append(nid)
             #print("NeedDrop:",nid)
-        print(info)
+        #print(info)
         data[nid]['name'] = info['name']
         data[nid]['major'] = info['major']
         data[nid]['class'] = info['class']
         data[nid]['quit'] = info['quit']
-        data[nid]['avg'] = np.mean(np.array([data[nid]['%d_total'%(contestID)] for contestID in [97,107,112,116,118,123,124] ]))
-        data[nid]['avg_score'] = np.mean(np.array([data[nid]['%d_score'%(contestID)] for contestID in [97,107,112,116,118,123,124] if data[nid]['%d_total'%(contestID)]!=-1]))
+        data[nid]['avg'] = np.mean(np.array([data[nid]['%d_total'%(contestID)] for contestID in [97,107,112,116,118,123,124,133]if data[nid]['%d_total'%(contestID)]!=-1]))
+        data[nid]['avg_score'] = np.mean(np.array([data[nid]['%d_score'%(contestID)] for contestID in [97,107,112,116,118,123,124,133] if data[nid]['%d_total'%(contestID)]!=-1]))
     
     for nid in needDrop:
         del data[nid]

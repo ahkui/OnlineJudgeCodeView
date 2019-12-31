@@ -165,6 +165,7 @@ function getFrustrationData(){
                         oneData.push(Number(value['118_total']).toFixed(2))
                         oneData.push(Number(value['123_total']).toFixed(2))
                         oneData.push(Number(value['124_total']).toFixed(2))
+                        oneData.push(Number(value['133_total']).toFixed(2))
                         data.push(oneData)
                         if(value['quit']=="X"){
                             c3Data[0].push(Number(value['avg_score']).toFixed(2))
@@ -338,13 +339,14 @@ function setChart(c3col){
               <th scope="col">退選週次</th>
               <th scope="col">平均成績</th>
 			  <th scope="col">平均挫折度</th>
-			  <th scope="col">w02_lab</th>
-			  <th scope="col">w03_lab</th>
-			  <th scope="col">w04_lab</th>
-              <th scope="col">Exam1</th>
-              <th scope="col">w07_lab</th>
-			  <th scope="col">w09_lab</th>
-              <th scope="col">Exam2</th>
+			  <th scope="col">第一次上課 20/09</th>
+			  <th scope="col">第二週09/27</th>
+			  <th scope="col">U03a_lab</th>
+              <th scope="col">MidtermExam</th>
+              <th scope="col">lab4a</th>
+			  <th scope="col">lab4b</th>
+              <th scope="col">lab5</th>
+              <th scope="col">FinalExam</th>
 			</tr>
 		  </thead>
 		  <tbody></tbody>
